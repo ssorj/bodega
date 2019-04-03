@@ -1,0 +1,3 @@
+export BODEGA_HOME=$PWD/build
+export PATH=$BODEGA_HOME/bin:$PATH
+export PYTHONPATH=$BODEGA_HOME/python:$PWD/python:$PYTHONPATH
