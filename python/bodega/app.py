@@ -21,6 +21,7 @@ import logging as _logging
 import os as _os
 import threading as _threading
 import time as _time
+import traceback as _traceback
 
 from .httpserver import HttpServer
 
@@ -35,13 +36,57 @@ class Application:
 
         self.http_server = HttpServer(self, port=self.http_port)
 
+        self.cleaner_thread = _BuildCleanerThread(self)
+
     def run(self):
         _logging.basicConfig(level=_logging.DEBUG)
 
         if not _os.path.exists(self.data_dir):
             _os.makedirs(self.data_dir)
 
+        self.cleaner_thread.start()
+
         self.http_server.run()
+
+class _BuildCleanerThread(_threading.Thread):
+    def __init__(self, app):
+        super().__init__()
+
+        self.app = app
+        self.daemon = True
+
+    def run(self):
+        while True:
+            _time.sleep(1)
+
+            try:
+                self.clean_builds()
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                _traceback.print_exc()
+
+    def clean_builds(self):
+        # builds/{repo}/{branch}/{build}
+
+        #build_data = http_get(f"{stagger_service}/api/data")
+        root_dir = _os.path.join(self.app.home, "builds")
+
+        if not _os.path.exists(root_dir):
+            _os.makedirs(root_dir)
+
+        for repo in _os.listdir(root_dir):
+            repo_dir = _os.path.join(root_dir, repo)
+
+            for branch in _os.listdir(repo_dir):
+                branch_dir = _os.path.join(repo_dir, branch)
+
+                for build in _os.listdir(branch_dir):
+                    build_dir = _os.path.join(branch_dir, build)
+
+                    # if build_dir is newer than 1 day old
+                    # or if build has an associated tag
+                    # keep it
 
 if __name__ == "__main__":
     app = Application(_os.getcwd())

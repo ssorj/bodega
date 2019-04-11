@@ -17,9 +17,11 @@
 # under the License.
 #
 
+import binascii as _binascii
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
+import shutil as _shutil
 import uuid as _uuid
 
 from brbn import *
@@ -30,19 +32,23 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
-        self.add_route("/builds/{repo_id}/{branch_id}/{build_id}",
-                       endpoint=BuildHandler, methods=["GET", "HEAD"])
+        self.add_route("/{repo_id}/{branch_id}/{build_id}",
+                       endpoint=BuildHandler, methods=["DELETE"])
+        self.add_route("/{repo_id}/{branch_id}/{build_id}/{path:path}",
+                       endpoint=BuildFileHandler, methods=["PUT", "HEAD", "GET"])
+        self.add_route("/{path:path}", endpoint=DirectoryHandler, methods=["GET"])
 
-        self.add_static_files("", _os.path.join(app.home, "static"))
+class DirectoryHandler(Handler):
+    async def process(self, request):
+        path = request.path_params["path"]
 
-class WebAppHandler(Handler):
-    _etag = str(_uuid.uuid4())
+        if not _os.path.isdir(path):
+            raise BadRequestError("Path is not a directory")
 
-    def etag(self, request, obj):
-        return self._etag
+        return path
 
-    async def render(self, request, obj):
-        return FileResponse(path=_os.path.join(request.app.home, "static", "index.html"))
+    async def render(self, request, path):
+        return DirectoryIndexResponse(path)
 
 class BuildHandler(Handler):
     async def process(self, request):
@@ -50,21 +56,61 @@ class BuildHandler(Handler):
         branch_id = request.path_params["branch_id"]
         build_id = request.path_params["build_id"]
 
-        # if request.method == "PUT":
-        #     build_data = await request.json()
-        #     build = model.put_build(repo_id, branch_id, build_id, build_data)
-        #     return build
+        build_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}"
 
-        # if request.method == "DELETE":
-        #     model.delete_build(repo_id, branch_id, build_id)
-        #     return
+        if request.method == "DELETE":
+            _shutil.rmtree(build_path, ignore_errors=True)
 
-        return repo_id, branch_id, build_id
+class BuildFileHandler(Handler):
+    async def process(self, request):
+        repo_id = request.path_params["repo_id"]
+        branch_id = request.path_params["branch_id"]
+        build_id = request.path_params["build_id"]
+        path = request.path_params["path"]
 
-    async def render(self, request, obj):
-        if request.method in ("PUT", "DELETE"):
+        file_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}/{path}"
+
+        if request.method == "PUT":
+            if file_path.endswith("/"):
+                raise BadRequestError("PUT of a directory is not supported")
+
+            temp_path = f"{file_path}.{_unique_id(4)}.temp"
+            dir_path, _ = _os.path.split(temp_path)
+
+            if not _os.path.exists(dir_path):
+                _os.makedirs(dir_path)
+
+            with open(temp_path, "wb") as f:
+                async for chunk in request.stream():
+                    f.write(chunk)
+
+            _os.rename(temp_path, file_path)
+
+        # if request.method == "GET":
+        #     print(111, file_path)
+        #     if not _os.path.exists(file_path):
+        #         raise NotFoundError(f"{file_path} does not exist")
+
+        return file_path
+
+    async def render(self, request, path):
+        if request.method == "PUT":
             return OkResponse()
 
-        assert obj is not None
+        assert path is not None
 
-        return JsonResponse(obj)
+        if request.method == "GET":
+            if _os.path.isfile(path):
+                return FileResponse(path)
+            elif _os.path.isdir(path):
+                return DirectoryIndexResponse(path)
+
+# Length in bytes, renders twice as long in hex
+def _unique_id(length=16):
+    assert length >= 1
+    assert length <= 16
+
+    uuid_bytes = _uuid.uuid4().bytes
+    uuid_bytes = uuid_bytes[:length]
+
+    return _binascii.hexlify(uuid_bytes).decode("utf-8")

@@ -23,6 +23,7 @@ import os as _os
 import starlette.requests as _requests
 import starlette.routing as _routing
 import starlette.staticfiles as _staticfiles
+import traceback as _traceback
 import uuid as _uuid
 import uvicorn as _uvicorn
 
@@ -67,27 +68,40 @@ class Handler:
 
     async def __call__(self, receive, send):
         request = Request(self.scope, receive)
+        response = None
 
         try:
             obj = await self.process(request)
-        except Redirect as e:
-            # XXX These don't work with await
-            return await RedirectResponse(str(e))
+        except ProcessingException as e:
+            response = e.response
         except _json_decoder.JSONDecodeError as e:
-            return await BadJsonResponse(e)
+            # XXX Make this a processing exception
+            response = BadJsonResponse(e)
         except Exception as e:
-            return await ServerErrorResponse(e)
+            response = ServerErrorResponse(e)
 
-        server_etag = f'"{self.etag(request, obj)}"'
-        client_etag = request.headers.get("If-None-Match")
+        if response is not None:
+            return await response(receive, send)
 
-        if server_etag is not None and client_etag == server_etag:
-            response = NotModifiedResponse()
-        elif request.method == "HEAD":
+        server_etag = self.etag(request, obj)
+
+        if server_etag is not None:
+            server_etag = f'"{server_etag}"'
+            client_etag = request.headers.get("If-None-Match")
+
+            print(111, server_etag)
+            print(222, client_etag)
+
+            if client_etag == server_etag:
+                response = NotModifiedResponse()
+
+        if request.method == "HEAD":
             response = Response("")
-        else:
+
+        if response is None:
             response = await self.render(request, obj)
-            assert response is not None
+
+        assert response is not None
 
         if server_etag is not None:
             response.headers["ETag"] = server_etag
@@ -101,10 +115,28 @@ class Handler:
         pass
 
     async def render(self, request, obj):
-        pass
+        return OkResponse()
 
-class Redirect(Exception):
-    pass
+class ProcessingException(Exception):
+    def __init__(self, message, response):
+        super().__init__(message)
+        self.response = response
+
+class Redirect(ProcessingException):
+    def __init__(self, url):
+        super().__init__(url, RedirectResponse(url))
+
+class BadRequestError(ProcessingException):
+    def __init__(self, message):
+        super().__init__(message, BadRequestResponse(message))
+
+class NotFoundError(ProcessingException):
+    def __init__(self, message):
+        super().__init__(message, NotFoundResponse(message))
+
+class BadRequestResponse(PlainTextResponse):
+    def __init__(self, exception):
+        super().__init__(f"Bad request: {exception}\n", 400)
 
 class NotFoundResponse(PlainTextResponse):
     def __init__(self, exception):
@@ -117,6 +149,7 @@ class NotModifiedResponse(PlainTextResponse):
 class ServerErrorResponse(PlainTextResponse):
     def __init__(self, exception):
         super().__init__(f"Internal server error: {exception}\n", 500)
+        _traceback.print_exc()
 
 class BadJsonResponse(PlainTextResponse):
     def __init__(self, exception):
@@ -126,9 +159,24 @@ class OkResponse(Response):
     def __init__(self):
         super().__init__("OK\n")
 
+class HtmlResponse(HTMLResponse):
+    pass
+
 class JsonResponse(JSONResponse):
     pass
 
 class CompressedJsonResponse(Response):
     def __init__(self, content):
         super().__init__(content, headers={"Content-Encoding": "gzip"}, media_type="application/json")
+
+class DirectoryIndexResponse(HtmlResponse):
+    def __init__(self, dir):
+        super().__init__(self.make_index(dir))
+
+    def make_index(self, dir):
+        return """
+<html>
+  <head><title>XXX</title></head>
+  <body>YYY</body>
+</html>
+"""

@@ -20,90 +20,13 @@
 from commandant import TestSkipped
 from plano import *
 
-container_artifact_data = {
-    "type": "container",
-    "registry_url": "https://registry.example.com/",
-    "repository": "example-app",
-    "image_id": "1.0.0-999"
-}
-
-file_artifact_data = {
-    "type": "file",
-    "url": "https://files.example.com/example-app/master/999/example-app-1.0.0-999.tar.gz",
-}
-
-maven_artifact_data = {
-    "type": "maven",
-    "group_id": "com.example",
-    "artifact_id": "example-app",
-    "version": "1.0.0-999",
-    "repository_url": "https://files.example.com/example-app/master/999/maven-repo",
-}
-
-rpm_artifact_data = {
-    "type": "rpm",
-    "repository_url": "https://files.example.com/example-app/master/999/yum-repo",
-    "name": "example-app",
-    "version": "1.0.0",
-    "release": "999",
-}
-
-tag_data = {
-    "build_id": "999",
-    "build_url": "https://ci.example.com/example-app-dist/999",
-    "commit_id": "f4fe336a8b9a3dc171ae4e023d8cb702ee35ebf7",
-    "commit_url": "https://scm.example.com/example-app-dist/f4fe336a8b9a3dc171ae4e023d8cb702ee35ebf7",
-    "artifacts": {
-        "example-app.tar.gz": file_artifact_data,
-        "example-app-maven": maven_artifact_data,
-        "example-app-rpm": rpm_artifact_data,
-    },
-}
-
-branch_data = {
-    "tags": {
-        "tested": tag_data,
-    },
-}
-
-repo_data = {
-    "example-app-dist": {
-        "source_url": "https://scm.example.com/example-app-dist",
-        "job_url": "https://ci.exmaple.com/example-app-dist",
-        "branches": {
-            "master": branch_data,
-        },
-    },
-}
-
 def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
-def test_api_repo(session):
-    _test_api(session, "repos/example-app-dist", repo_data)
-
-def test_api_branch(session):
-    _test_api(session, "repos/example-app-dist/branches/master", branch_data)
-
-def test_api_tag(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
-
-def test_api_artifact_container(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
-
-def test_api_artifact_file(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
-
-def test_api_artifact_maven(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
-
-def test_api_artifact_rpm(session):
-    _test_api(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
-
 def _test_api(session, path, data):
     with TestServer() as server:
-        url = f"{server.http_url}/api/{path}"
+        url = f"{server.http_url}/{path}"
 
         try:
             head(url)
@@ -111,54 +34,25 @@ def _test_api(session, path, data):
         except CalledProcessError:
             pass
 
-        put(url, data)
-        get(url)
-        head(url)
-        delete(url)
+        test_data_dir = join(session.module.command.home, "test-data")
+        test_build = join(test_data_dir, "build1")
 
-def test_events_repo(session):
-    _test_events(session, "repos/example-app-dist", repo_data)
+        for file_path in find(test_build, "*"):
+            relative_path = file_path[len(test_build):]
+            put(f"{url}/{relative_path}", file_path)
 
-def test_events_branch(session):
-    _test_events(session, "repos/example-app-dist/branches/master", branch_data)
+        # get(url)
+        # head(url)
+        # delete(url)
 
-def test_events_tag(session):
-    _test_events(session, "repos/example-app-dist/branches/master/tags/tested", tag_data)
+def test_something(session):
+    _test_api(session, "a/b/c", None)
+        
+curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/octet-stream' -H 'Expect:'"
 
-def test_events_artifact_container(session):
-    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-container", container_artifact_data)
-
-def test_events_artifact_file(session):
-    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app.tar.gz", file_artifact_data)
-
-def test_events_artifact_maven(session):
-    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-maven", maven_artifact_data)
-
-def test_events_artifact_rpm(session):
-    _test_events(session, "repos/example-app-dist/branches/master/tags/tested/artifacts/example-app-rpm", rpm_artifact_data)
-
-def _test_events(session, path, data):
-    if which("qreceive") is None:
-        raise TestSkipped("qreceive is not available")
-
-    with TestServer() as server:
-        events_url = f"{server.amqp_url}/events/{path}"
-        api_url = f"{server.http_url}/api/{path}"
-
-        put(api_url, data)
-
-        with receive(events_url, 1) as proc:
-            sleep(0.2)
-            put(api_url, data)
-            check_process(proc)
-
-curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/json' -H 'Expect:'"
-
-def put(url, data):
-    with temp_file() as data_file:
-        write_json(data_file, data)
-        print(f"PUT {url} -> ", end="", flush=True)
-        call("curl -X PUT {} --data @{} {}", url, data_file, curl_options)
+def put(url, file):
+    print(f"PUT {url} -> ", end="", flush=True)
+    call("curl -X PUT {} --data @{} {}", url, file, curl_options)
 
 def get(url):
     print(f"GET {url} -> ", end="", flush=True)
@@ -185,7 +79,6 @@ class TestServer(object):
             self.proc = start_process("bodega")
 
         self.proc.http_url = f"http://localhost:{http_port}"
-        self.proc.amqp_url = f"amqp://127.0.0.1:{amqp_port}"
 
     def __enter__(self):
         sleep(0.2);
