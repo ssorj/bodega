@@ -40,10 +40,10 @@ class HttpServer(Server):
 
 class DirectoryHandler(Handler):
     async def process(self, request):
-        path = request.path_params["path"]
+        path = f"{request.app.home}/builds/{request.path_params['path']}"
 
         if not _os.path.isdir(path):
-            raise BadRequestError("Path is not a directory")
+            raise BadRequestError(f"No directory at {path}")
 
         return path
 
@@ -86,10 +86,9 @@ class BuildFileHandler(Handler):
 
             _os.rename(temp_path, file_path)
 
-        # if request.method == "GET":
-        #     print(111, file_path)
-        #     if not _os.path.exists(file_path):
-        #         raise NotFoundError(f"{file_path} does not exist")
+        if request.method == "GET":
+            if not _os.path.exists(file_path):
+                raise NotFoundError(f"{file_path} does not exist")
 
         return file_path
 

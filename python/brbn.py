@@ -74,9 +74,6 @@ class Handler:
             obj = await self.process(request)
         except ProcessingException as e:
             response = e.response
-        except _json_decoder.JSONDecodeError as e:
-            # XXX Make this a processing exception
-            response = BadJsonResponse(e)
         except Exception as e:
             response = ServerErrorResponse(e)
 
@@ -88,9 +85,6 @@ class Handler:
         if server_etag is not None:
             server_etag = f'"{server_etag}"'
             client_etag = request.headers.get("If-None-Match")
-
-            print(111, server_etag)
-            print(222, client_etag)
 
             if client_etag == server_etag:
                 response = NotModifiedResponse()

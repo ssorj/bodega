@@ -24,35 +24,25 @@ def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
-def _test_api(session, path, data):
+def test_put(session):
     with TestServer() as server:
-        url = f"{server.http_url}/{path}"
-
-        try:
-            head(url)
-            assert False, "Expected this to 404"
-        except CalledProcessError:
-            pass
-
+        url = f"{server.http_url}/a/b/c"
         test_data_dir = join(session.module.command.home, "test-data")
         test_build = join(test_data_dir, "build1")
 
         for file_path in find(test_build, "*"):
-            relative_path = file_path[len(test_build):]
+            relative_path = file_path[len(test_build) + 1:]
             put(f"{url}/{relative_path}", file_path)
 
         # get(url)
         # head(url)
         # delete(url)
 
-def test_something(session):
-    _test_api(session, "a/b/c", None)
-        
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/octet-stream' -H 'Expect:'"
 
 def put(url, file):
     print(f"PUT {url} -> ", end="", flush=True)
-    call("curl -X PUT {} --data @{} {}", url, file, curl_options)
+    call("curl -X PUT {} --data-binary @{} {}", url, file, curl_options)
 
 def get(url):
     print(f"GET {url} -> ", end="", flush=True)
