@@ -25,6 +25,8 @@ import traceback as _traceback
 
 from .httpserver import HttpServer
 
+_log = _logging.getLogger("app")
+
 class Application:
     def __init__(self, home, data_dir=None, http_port=8080):
         self.home = home
@@ -67,6 +69,8 @@ class _BuildCleanerThread(_threading.Thread):
                 _traceback.print_exc()
 
     def clean_builds(self):
+        _log.info("Cleaning builds")
+        
         # builds/{repo}/{branch}/{build}
 
         #build_data = http_get(f"{stagger_service}/api/data")
@@ -75,14 +79,16 @@ class _BuildCleanerThread(_threading.Thread):
         if not _os.path.exists(root_dir):
             _os.makedirs(root_dir)
 
-        for repo in _os.listdir(root_dir):
-            repo_dir = _os.path.join(root_dir, repo)
+        for repo_id in _os.listdir(root_dir):
+            repo_dir = _os.path.join(root_dir, repo_id)
 
-            for branch in _os.listdir(repo_dir):
-                branch_dir = _os.path.join(repo_dir, branch)
+            for branch_id in _os.listdir(repo_dir):
+                branch_dir = _os.path.join(repo_dir, branch_id)
 
-                for build in _os.listdir(branch_dir):
-                    build_dir = _os.path.join(branch_dir, build)
+                for build_id in _os.listdir(branch_dir):
+                    build_dir = _os.path.join(branch_dir, build_id)
+
+                    _log.info(f"XXX {build_dir}")
 
                     # if build_dir is newer than 1 day old
                     # or if build has an associated tag

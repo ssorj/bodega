@@ -86,6 +86,9 @@ class Handler:
             server_etag = f'"{server_etag}"'
             client_etag = request.headers.get("If-None-Match")
 
+            eprint(111, server_etag)
+            eprint(222, client_etag)
+
             if client_etag == server_etag:
                 response = NotModifiedResponse()
 
@@ -163,14 +166,35 @@ class CompressedJsonResponse(Response):
     def __init__(self, content):
         super().__init__(content, headers={"Content-Encoding": "gzip"}, media_type="application/json")
 
-class DirectoryIndexResponse(HtmlResponse):
-    def __init__(self, dir):
-        super().__init__(self.make_index(dir))
-
-    def make_index(self, dir):
-        return """
+_directory_index_template = """
 <html>
-  <head><title>XXX</title></head>
-  <body>YYY</body>
+  <head>
+    <title>{title}</title>
+    <link rel="icon" href="data:,">
+  </head>
+  <body><pre>{links}</pre></body>
 </html>
 """
+
+class DirectoryIndexResponse(HtmlResponse):
+    def __init__(self, base_dir, request_path):
+        super().__init__(self.make_index(base_dir, request_path))
+
+    def make_index(self, base_dir, request_path):
+        if request_path.endswith("/"):
+            request_path = request_path[:-1]
+
+        fs_path = base_dir + request_path
+
+        assert _os.path.isdir(fs_path), fs_path
+
+        names = _os.listdir(fs_path)
+        links = list()
+
+        if request_path != "":
+            links.append(f"<a href=\"{request_path}/..\">..</a>")
+
+        for name in names:
+            links.append(f"<a href=\"{request_path}/{name}\">{name}</a>")
+
+        return _directory_index_template.format(title=request_path, links="\n".join(links))

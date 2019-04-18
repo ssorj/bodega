@@ -21,7 +21,6 @@ import binascii as _binascii
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
-import shutil as _shutil
 import uuid as _uuid
 
 from brbn import *
@@ -32,49 +31,38 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
-        self.add_route("/{repo_id}/{branch_id}/{build_id}",
-                       endpoint=BuildHandler, methods=["DELETE"])
         self.add_route("/{repo_id}/{branch_id}/{build_id}/{path:path}",
                        endpoint=BuildFileHandler, methods=["PUT", "HEAD", "GET"])
         self.add_route("/{path:path}", endpoint=DirectoryHandler, methods=["GET"])
 
 class DirectoryHandler(Handler):
     async def process(self, request):
-        path = f"{request.app.home}/builds/{request.path_params['path']}"
+        base_dir = f"{request.app.home}/builds"
+        request_path = "/" + request.path_params["path"]
+        fs_path = base_dir + request_path
 
-        if not _os.path.isdir(path):
-            raise BadRequestError(f"No directory at {path}")
+        if not _os.path.isdir(fs_path):
+            raise BadRequestError(f"No directory at {fs_path}")
 
-        return path
+        return base_dir, request_path
 
-    async def render(self, request, path):
-        return DirectoryIndexResponse(path)
-
-class BuildHandler(Handler):
-    async def process(self, request):
-        repo_id = request.path_params["repo_id"]
-        branch_id = request.path_params["branch_id"]
-        build_id = request.path_params["build_id"]
-
-        build_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}"
-
-        if request.method == "DELETE":
-            _shutil.rmtree(build_path, ignore_errors=True)
+    async def render(self, request, paths):
+        return DirectoryIndexResponse(*paths)
 
 class BuildFileHandler(Handler):
     async def process(self, request):
         repo_id = request.path_params["repo_id"]
         branch_id = request.path_params["branch_id"]
         build_id = request.path_params["build_id"]
-        path = request.path_params["path"]
+        file_path = request.path_params["path"]
 
-        file_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}/{path}"
+        fs_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}/{file_path}"
 
         if request.method == "PUT":
-            if file_path.endswith("/"):
+            if fs_path.endswith("/"):
                 raise BadRequestError("PUT of a directory is not supported")
 
-            temp_path = f"{file_path}.{_unique_id(4)}.temp"
+            temp_path = f"{fs_path}.{_unique_id(4)}.temp"
             dir_path, _ = _os.path.split(temp_path)
 
             if not _os.path.exists(dir_path):
@@ -84,25 +72,28 @@ class BuildFileHandler(Handler):
                 async for chunk in request.stream():
                     f.write(chunk)
 
-            _os.rename(temp_path, file_path)
+            _os.rename(temp_path, fs_path)
 
         if request.method == "GET":
-            if not _os.path.exists(file_path):
-                raise NotFoundError(f"{file_path} does not exist")
+            if not _os.path.exists(fs_path):
+                raise NotFoundError(f"{fs_path} does not exist")
 
-        return file_path
+        return fs_path
 
-    async def render(self, request, path):
+    def etag(self, request, fs_path):
+        pass # XXX
+
+    async def render(self, request, fs_path):
         if request.method == "PUT":
             return OkResponse()
 
-        assert path is not None
+        assert fs_path is not None
 
         if request.method == "GET":
-            if _os.path.isfile(path):
-                return FileResponse(path)
-            elif _os.path.isdir(path):
-                return DirectoryIndexResponse(path)
+            if _os.path.isfile(fs_path):
+                return FileResponse(fs_path)
+            elif _os.path.isdir(fs_path):
+                return DirectoryIndexResponse(fs_path)
 
 # Length in bytes, renders twice as long in hex
 def _unique_id(length=16):

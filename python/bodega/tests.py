@@ -18,25 +18,21 @@
 #
 
 from commandant import TestSkipped
-from plano import *
+from fortworth import *
 
 def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
-def test_put(session):
+def test_put_python(session):
     with TestServer() as server:
-        url = f"{server.http_url}/a/b/c"
         test_data_dir = join(session.module.command.home, "test-data")
-        test_build = join(test_data_dir, "build1")
+        build_dir = join(test_data_dir, "build1")
+        build_data = BuildData("a", "b", "c")
 
-        for file_path in find(test_build, "*"):
-            relative_path = file_path[len(test_build) + 1:]
-            put(f"{url}/{relative_path}", file_path)
+        bodega_put_build(build_dir, build_data, service_url=server.http_url)
 
-        # get(url)
-        # head(url)
-        # delete(url)
+        assert bodega_build_exists(build_data, service_url=server.http_url)
 
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/octet-stream' -H 'Expect:'"
 
