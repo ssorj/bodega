@@ -2,10 +2,6 @@ import requests as _requests
 
 from plano import *
 
-_file_service_ssh_host = "files-ssh-rhm.cloud.paas.upshift.redhat.com"
-_file_service_ssh_port = 32196
-_file_service_url = "https://files-http-rhm.cloud.paas.upshift.redhat.com"
-
 _stagger_url = "https://stagger-rhm.cloud.paas.upshift.redhat.com"
 _bodega_url = "https://bodega-rhm.cloud.paas.upshift.redhat.com"
 
@@ -72,21 +68,45 @@ def git_make_archive(checkout_dir, output_dir, archive_stem):
 
     return output_file
 
-def stagger_get_tag(repo, branch, tag):
-    url = "{0}/api/repos/{1}/branches/{2}/tags/{3}".format(_stagger_url, repo, branch, tag)
-    return http_get_json(url)
+def stagger_get_data(service_url=_stagger_url):
+    url = "{0}/api/data".format(service_url)
 
-def stagger_put_tag(repo, branch, tag, tag_data):
-    url = "{0}/api/repos/{1}/branches/{2}/tags/{3}".format(_stagger_url, repo, branch, tag)
-    return http_put_json(url, tag_data)
+    response = _requests.get(url)
+    response.raise_for_status()
 
-def stagger_get_artifact(repo, branch, tag, artifact):
+    return response.json()
+
+def stagger_get_tag(repo, branch, tag, service_url=_stagger_url):
+    url = "{0}/api/repos/{1}/branches/{2}/tags/{3}".format(service_url, repo, branch, tag)
+
+    response = _requests.get(url)
+    response.raise_for_status()
+
+    return response.json()
+
+def stagger_put_tag(repo, branch, tag, tag_data, service_url=_stagger_url):
+    url = "{0}/api/repos/{1}/branches/{2}/tags/{3}".format(service_url, repo, branch, tag)
+
+    response = _requests.put(url, json=tag_data)
+    response.raise_for_status()
+
+    return response.text
+
+def stagger_get_artifact(repo, branch, tag, artifact, service_url=_stagger_url):
     url = "{0}/api/repos/{1}/branches/{2}/tags/{3}/artifacts/{4}".format(_stagger_url, repo, branch, tag, artifact)
-    return http_get_json(url)
 
-def stagger_put_artifact(repo, branch, tag, artifact, artifact_data):
+    response = _requests.get(url)
+    response.raise_for_status()
+
+    return response.json()
+
+def stagger_put_artifact(repo, branch, tag, artifact, artifact_data, service_url=_stagger_url):
     url = "{0}/api/repos/{1}/branches/{2}/tags/{3}/artifacts/{4}".format(_stagger_url, repo, branch, tag, artifact)
-    return http_put_json(url, artifact_data)
+
+    response = _requests.put(url, json=artifact_data)
+    response.raise_for_status()
+
+    return response.text
 
 def bodega_put_build(build_dir, build_data, service_url=_bodega_url):
     build_url = _build_url(build_data, service_url=service_url)
@@ -100,7 +120,8 @@ def bodega_put_build(build_dir, build_data, service_url=_bodega_url):
         request_url = "{0}/{1}".format(build_url, relative_path)
 
         with open(fs_path, "rb") as f:
-            session.put(request_url, data=f)
+            response = session.put(request_url, data=f)
+            response.raise_for_status()
 
 def bodega_build_exists(build_data, service_url=_bodega_url):
     build_url = _build_url(build_data, service_url=service_url)

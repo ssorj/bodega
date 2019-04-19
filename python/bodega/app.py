@@ -17,8 +17,11 @@
 # under the License.
 #
 
+import fortworth as _fortworth
 import logging as _logging
 import os as _os
+import requests as _requests
+import shutil as _shutil
 import threading as _threading
 import time as _time
 import traceback as _traceback
@@ -36,9 +39,8 @@ class Application:
         if self.data_dir is None:
             self.data_dir = _os.path.join(self.home, "data")
 
-        self.http_server = HttpServer(self, port=self.http_port)
-
         self.cleaner_thread = _BuildCleanerThread(self)
+        self.http_server = HttpServer(self, port=self.http_port)
 
     def run(self):
         _logging.basicConfig(level=_logging.DEBUG)
@@ -59,7 +61,7 @@ class _BuildCleanerThread(_threading.Thread):
 
     def run(self):
         while True:
-            _time.sleep(1)
+            _time.sleep(60)
 
             try:
                 self.clean_builds()
@@ -70,10 +72,8 @@ class _BuildCleanerThread(_threading.Thread):
 
     def clean_builds(self):
         _log.info("Cleaning builds")
-        
-        # builds/{repo}/{branch}/{build}
 
-        #build_data = http_get(f"{stagger_service}/api/data")
+        data = _fortworth.stagger_get_data()
         root_dir = _os.path.join(self.app.home, "builds")
 
         if not _os.path.exists(root_dir):
@@ -87,12 +87,30 @@ class _BuildCleanerThread(_threading.Thread):
 
                 for build_id in _os.listdir(branch_dir):
                     build_dir = _os.path.join(branch_dir, build_id)
+                    fq_build_id = f"{repo_id}/{branch_id}/{build_id}"
 
-                    _log.info(f"XXX {build_dir}")
+                    _log.info(f"Considering build {fq_build_id} for deletion")
 
-                    # if build_dir is newer than 1 day old
-                    # or if build has an associated tag
-                    # keep it
+                    if _time.time() - _os.path.getmtime(build_dir) < 60 * 60:
+                        _log.info("  The build was recently added; leaving it")
+                        continue
+                    else:
+                        _log.info("  The build is old enough to go to the next check")
+
+                    try:
+                        tags = data["repos"][repo_id]["branches"][branch_id]["tags"]
+                    except KeyError:
+                        _log.info(f"  The build has no tags (1); deleting it")
+                        _shutil.rmtree(build_dir, ignore_errors=True)
+                        continue
+
+                    for key, value in tags.items():
+                        if value.get("build_id") == build_id:
+                            _log.info("  The build has a tag; leaving it")
+                            break
+                    else:
+                        _log.info("  The build has no tags (2); deleting it")
+                        _shutil.rmtree(build_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     app = Application(_os.getcwd())

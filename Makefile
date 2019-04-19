@@ -48,7 +48,6 @@ clean:
 
 .PHONY: build
 build: ${BIN_TARGETS} build/prefix.txt
-	python3 -m transom render --quiet --site-url "" --force static build/static
 	ln -snf ../python build/python
 	ln -snf ../test-data build/test-data
 
@@ -58,7 +57,6 @@ install: build
 	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/python
 	scripts/install-files python/bodega ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/python/bodega
 	scripts/install-files test-data ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/test-data
-	scripts/install-files build/static ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/static
 
 .PHONY: test
 test: build
