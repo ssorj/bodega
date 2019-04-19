@@ -129,8 +129,8 @@ class BadRequestResponse(PlainTextResponse):
         super().__init__(f"Bad request: {exception}\n", 400)
 
 class NotFoundResponse(PlainTextResponse):
-    def __init__(self, exception):
-        super().__init__(f"Not found: {exception}\n", 404)
+    def __init__(self):
+        super().__init__(f"Not found\n", 404)
 
 class NotModifiedResponse(PlainTextResponse):
     def __init__(self):

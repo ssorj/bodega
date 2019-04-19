@@ -40,17 +40,18 @@ class Application:
         if self.data_dir is None:
             self.data_dir = _os.path.join(self.home, "data")
 
+        self.builds_dir = _os.path.join(self.data_dir, "builds")
+
         self.cleaner_thread = _BuildCleanerThread(self)
         self.http_server = HttpServer(self, port=self.http_port)
 
     def run(self):
         _logging.basicConfig(level=_logging.DEBUG)
 
-        if not _os.path.exists(self.data_dir):
-            _os.makedirs(self.data_dir)
+        if not _os.path.exists(self.builds_dir):
+            _os.makedirs(self.builds_dir)
 
         self.cleaner_thread.start()
-
         self.http_server.run()
 
 class _BuildCleanerThread(_threading.Thread):
@@ -80,13 +81,8 @@ class _BuildCleanerThread(_threading.Thread):
             _log.warn(f"Failed connecting to Stagger: {e}")
             return
 
-        builds_dir = _os.path.join(self.app.home, "builds")
-
-        if not _os.path.exists(builds_dir):
-            _os.makedirs(builds_dir)
-
-        for repo_id in _os.listdir(builds_dir):
-            repo_dir = _os.path.join(builds_dir, repo_id)
+        for repo_id in _os.listdir(self.app.builds_dir):
+            repo_dir = _os.path.join(self.app.builds_dir, repo_id)
 
             for branch_id in _os.listdir(repo_dir):
                 branch_dir = _os.path.join(repo_dir, branch_id)

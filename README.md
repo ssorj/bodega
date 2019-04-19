@@ -4,6 +4,7 @@
 
  - starlette
  - uvicorn
+ - python3-requests
 
 ## Unfiled
 

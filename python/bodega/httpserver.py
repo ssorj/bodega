@@ -35,14 +35,13 @@ class HttpServer(Server):
 
 class DirectoryHandler(Handler):
     async def handle(self, request):
-        base_dir = f"{request.app.home}/builds"
         request_path = "/" + request.path_params["path"]
-        fs_path = base_dir + request_path
+        fs_path = request.app.builds_dir + request_path
 
-        if not _os.path.isdir(fs_path):
-            return BadRequestResponse(f"No directory at {fs_path}")
+        if not _os.path.exists(fs_path):
+            return NotFoundResponse()
 
-        return DirectoryIndexResponse(base_dir, request_path)
+        return DirectoryIndexResponse(request.app.builds_dir, request_path)
 
 class BuildFileHandler(Handler):
     async def handle(self, request):
@@ -51,7 +50,7 @@ class BuildFileHandler(Handler):
         build_id = request.path_params["build_id"]
         file_path = request.path_params["path"]
 
-        fs_path = f"{request.app.home}/builds/{repo_id}/{branch_id}/{build_id}/{file_path}"
+        fs_path = f"{request.app.builds_dir}/{repo_id}/{branch_id}/{build_id}/{file_path}"
 
         if request.method == "PUT":
             if fs_path.endswith("/"):
@@ -73,7 +72,7 @@ class BuildFileHandler(Handler):
 
         if request.method == "GET":
             if not _os.path.exists(fs_path):
-                return NotFoundResponse(f"{fs_path} does not exist")
+                return NotFoundResponse()
 
             if _os.path.isfile(fs_path):
                 return FileResponse(fs_path)
