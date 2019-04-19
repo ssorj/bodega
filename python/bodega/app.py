@@ -21,6 +21,7 @@ import fortworth as _fortworth
 import logging as _logging
 import os as _os
 import requests as _requests
+import requests.exceptions as _requests_exceptions
 import shutil as _shutil
 import threading as _threading
 import time as _time
@@ -73,14 +74,19 @@ class _BuildCleanerThread(_threading.Thread):
     def clean_builds(self):
         _log.info("Cleaning builds")
 
-        data = _fortworth.stagger_get_data()
-        root_dir = _os.path.join(self.app.home, "builds")
+        try:
+            data = _fortworth.stagger_get_data()
+        except _requests_exceptions.ConnectionError as e:
+            _log.warn(f"Failed connecting to Stagger: {e}")
+            return
 
-        if not _os.path.exists(root_dir):
-            _os.makedirs(root_dir)
+        builds_dir = _os.path.join(self.app.home, "builds")
 
-        for repo_id in _os.listdir(root_dir):
-            repo_dir = _os.path.join(root_dir, repo_id)
+        if not _os.path.exists(builds_dir):
+            _os.makedirs(builds_dir)
+
+        for repo_id in _os.listdir(builds_dir):
+            repo_dir = _os.path.join(builds_dir, repo_id)
 
             for branch_id in _os.listdir(repo_dir):
                 branch_dir = _os.path.join(repo_dir, branch_id)

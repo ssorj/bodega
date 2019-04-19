@@ -19,12 +19,13 @@
 
 from commandant import TestSkipped
 from fortworth import *
+from fortworth import _bodega_url
 
 def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
-def test_put_python(session):
+def test_put_get_python(session):
     with TestServer() as server:
         test_data_dir = join(session.module.command.home, "test-data")
         build_dir = join(test_data_dir, "build1")
@@ -33,6 +34,24 @@ def test_put_python(session):
         bodega_put_build(build_dir, build_data, service_url=server.http_url)
 
         assert bodega_build_exists(build_data, service_url=server.http_url)
+
+def test_put_get_curl(session):
+    with TestServer() as server:
+        test_data_dir = join(session.module.command.home, "test-data")
+        build_dir = join(test_data_dir, "build1")
+        build_data = BuildData("x", "y", "z")
+        build_url = "{0}/{1}/{2}/{3}".format(server.http_url, build_data.repo, build_data.branch, build_data.id)
+
+        for fs_path in find(build_dir):
+            if is_dir(fs_path):
+                continue
+
+            relative_path = fs_path[len(build_dir) + 1:]
+            request_url = "{0}/{1}".format(build_url, relative_path)
+
+            put(request_url, fs_path)
+
+        get(build_url)
 
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/octet-stream' -H 'Expect:'"
 
