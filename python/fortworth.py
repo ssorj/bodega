@@ -3,6 +3,7 @@ import requests as _requests
 from plano import *
 
 _stagger_url = "https://stagger-rhm.cloud.paas.upshift.redhat.com"
+_stagger_cluster_url = "http://stagger-http.rhm.svc:8080"
 _bodega_url = "https://bodega-rhm.cloud.paas.upshift.redhat.com"
 
 _yum_repo_config_template = """
