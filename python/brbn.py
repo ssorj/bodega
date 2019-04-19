@@ -17,14 +17,12 @@
 # under the License.
 #
 
-import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
 import starlette.requests as _requests
 import starlette.routing as _routing
 import starlette.staticfiles as _staticfiles
 import traceback as _traceback
-import uuid as _uuid
 import uvicorn as _uvicorn
 
 from starlette.responses import *

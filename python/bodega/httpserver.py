@@ -17,7 +17,6 @@
 # under the License.
 #
 
-import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
 import uuid as _uuid
