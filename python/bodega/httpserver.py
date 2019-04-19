@@ -36,21 +36,18 @@ class HttpServer(Server):
         self.add_route("/{path:path}", endpoint=DirectoryHandler, methods=["GET"])
 
 class DirectoryHandler(Handler):
-    async def process(self, request):
+    async def handle(self, request):
         base_dir = f"{request.app.home}/builds"
         request_path = "/" + request.path_params["path"]
         fs_path = base_dir + request_path
 
         if not _os.path.isdir(fs_path):
-            raise BadRequestError(f"No directory at {fs_path}")
+            return BadRequestResponse(f"No directory at {fs_path}")
 
-        return base_dir, request_path
-
-    async def render(self, request, paths):
-        return DirectoryIndexResponse(*paths)
+        return DirectoryIndexResponse(base_dir, request_path)
 
 class BuildFileHandler(Handler):
-    async def process(self, request):
+    async def handle(self, request):
         repo_id = request.path_params["repo_id"]
         branch_id = request.path_params["branch_id"]
         build_id = request.path_params["build_id"]
@@ -60,7 +57,7 @@ class BuildFileHandler(Handler):
 
         if request.method == "PUT":
             if fs_path.endswith("/"):
-                raise BadRequestError("PUT of a directory is not supported")
+                return BadRequestResponse("PUT of a directory is not supported")
 
             temp_path = f"{fs_path}.{_unique_id(4)}.temp"
             dir_path, _ = _os.path.split(temp_path)
@@ -74,26 +71,18 @@ class BuildFileHandler(Handler):
 
             _os.rename(temp_path, fs_path)
 
-        if request.method == "GET":
-            if not _os.path.exists(fs_path):
-                raise NotFoundError(f"{fs_path} does not exist")
-
-        return fs_path
-
-    def etag(self, request, fs_path):
-        pass # XXX
-
-    async def render(self, request, fs_path):
-        if request.method == "PUT":
             return OkResponse()
 
-        assert fs_path is not None
-
         if request.method == "GET":
+            if not _os.path.exists(fs_path):
+                return NotFoundResponse(f"{fs_path} does not exist")
+
             if _os.path.isfile(fs_path):
                 return FileResponse(fs_path)
             elif _os.path.isdir(fs_path):
                 return DirectoryIndexResponse(fs_path)
+            else:
+                raise Exception()
 
 # Length in bytes, renders twice as long in hex
 def _unique_id(length=16):

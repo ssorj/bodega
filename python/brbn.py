@@ -68,66 +68,61 @@ class Handler:
 
     async def __call__(self, receive, send):
         request = Request(self.scope, receive)
-        response = None
 
         try:
-            obj = await self.process(request)
-        except ProcessingException as e:
+            response = await self.handle(request)
+        except HandlingException as e:
             response = e.response
         except Exception as e:
             response = ServerErrorResponse(e)
 
-        if response is not None:
-            return await response(receive, send)
+        await response(receive, send)
 
-        server_etag = self.etag(request, obj)
+    async def handle(self, request):
+        entity = await self.process(request)
+        server_etag = self.etag(request, entity)
 
         if server_etag is not None:
             server_etag = f'"{server_etag}"'
-            client_etag = request.headers.get("If-None-Match")
-
-            eprint(111, server_etag)
-            eprint(222, client_etag)
+            client_etag = request.headers.get("if-none-match")
 
             if client_etag == server_etag:
-                response = NotModifiedResponse()
+                return NotModifiedResponse()
 
         if request.method == "HEAD":
             response = Response("")
-
-        if response is None:
-            response = await self.render(request, obj)
-
-        assert response is not None
+        else:
+            response = await self.render(request, entity)
+            assert response is not None
 
         if server_etag is not None:
-            response.headers["ETag"] = server_etag
+            response.headers["etag"] = server_etag
 
-        await response(receive, send)
+        return response
 
     async def process(self, request):
-        return None # obj
+        return None
 
-    def etag(self, request, obj):
+    def etag(self, request, entity):
         pass
 
-    async def render(self, request, obj):
+    async def render(self, request, entity):
         return OkResponse()
 
-class ProcessingException(Exception):
+class HandlingException(Exception):
     def __init__(self, message, response):
         super().__init__(message)
         self.response = response
 
-class Redirect(ProcessingException):
+class Redirect(HandlingException):
     def __init__(self, url):
         super().__init__(url, RedirectResponse(url))
 
-class BadRequestError(ProcessingException):
+class BadRequestError(HandlingException):
     def __init__(self, message):
         super().__init__(message, BadRequestResponse(message))
 
-class NotFoundError(ProcessingException):
+class NotFoundError(HandlingException):
     def __init__(self, message):
         super().__init__(message, NotFoundResponse(message))
 
