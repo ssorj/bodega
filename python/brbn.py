@@ -167,7 +167,7 @@ _directory_index_template = """
     <title>{title}</title>
     <link rel="icon" href="data:,">
   </head>
-  <body><pre>{links}</pre></body>
+  <body><pre>{lines}</pre></body>
 </html>
 """
 
@@ -184,12 +184,14 @@ class DirectoryIndexResponse(HtmlResponse):
         assert _os.path.isdir(fs_path), fs_path
 
         names = _os.listdir(fs_path)
-        links = list()
+        lines = list()
 
-        if request_path != "":
-            links.append(f"<a href=\"{request_path}/..\">..</a>")
+        if request_path == "":
+            lines.append("..")
+        else:
+            lines.append(f"<a href=\"{request_path}/..\">..</a>")
 
         for name in names:
-            links.append(f"<a href=\"{request_path}/{name}\">{name}</a>")
+            lines.append(f"<a href=\"{request_path}/{name}\">{name}</a>")
 
-        return _directory_index_template.format(title=request_path, links="\n".join(links))
+        return _directory_index_template.format(title=request_path, lines="\n".join(lines))

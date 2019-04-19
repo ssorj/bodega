@@ -17,7 +17,6 @@
 # under the License.
 #
 
-import binascii as _binascii
 import json.decoder as _json_decoder
 import logging as _logging
 import os as _os
@@ -59,7 +58,7 @@ class BuildFileHandler(Handler):
             if fs_path.endswith("/"):
                 return BadRequestResponse("PUT of a directory is not supported")
 
-            temp_path = f"{fs_path}.{_unique_id(4)}.temp"
+            temp_path = f"{fs_path}.{_uuid.uuid4()}.temp"
             dir_path, _ = _os.path.split(temp_path)
 
             if not _os.path.exists(dir_path):
@@ -83,13 +82,3 @@ class BuildFileHandler(Handler):
                 return DirectoryIndexResponse(fs_path)
             else:
                 raise Exception()
-
-# Length in bytes, renders twice as long in hex
-def _unique_id(length=16):
-    assert length >= 1
-    assert length <= 16
-
-    uuid_bytes = _uuid.uuid4().bytes
-    uuid_bytes = uuid_bytes[:length]
-
-    return _binascii.hexlify(uuid_bytes).decode("utf-8")
