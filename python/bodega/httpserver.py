@@ -35,8 +35,12 @@ class HttpServer(Server):
 
 class DirectoryHandler(Handler):
     async def handle(self, request):
-        request_path = "/" + request.path_params["path"]
-        fs_path = request.app.builds_dir + request_path
+        request_path = request.path_params["path"]
+        fs_path = _os.path.join(request.app.builds_dir, request_path)
+        fs_path = _os.path.normpath(fs_path)
+
+        if not fs_path.startswith(request.app.builds_dir):
+            return BadRequestResponse("Requested path not under the builds directory")
 
         if not _os.path.exists(fs_path):
             return NotFoundResponse()
@@ -48,9 +52,14 @@ class BuildFileHandler(Handler):
         repo_id = request.path_params["repo_id"]
         branch_id = request.path_params["branch_id"]
         build_id = request.path_params["build_id"]
-        file_path = request.path_params["path"]
+        request_path = request.path_params["path"]
 
-        fs_path = f"{request.app.builds_dir}/{repo_id}/{branch_id}/{build_id}/{file_path}"
+        build_dir = _os.path.join(request.app.builds_dir, repo_id, branch_id, build_id)
+        fs_path = _os.path.join(build_dir, request_path)
+        fs_path = _os.path.normpath(fs_path)
+
+        if not fs_path.startswith(build_dir):
+            return BadRequestResponse("Requested path not under the build directory")
 
         if request.method == "PUT":
             if fs_path.endswith("/"):
@@ -77,6 +86,7 @@ class BuildFileHandler(Handler):
             if _os.path.isfile(fs_path):
                 return FileResponse(fs_path)
             elif _os.path.isdir(fs_path):
-                return DirectoryIndexResponse(fs_path)
+                request_path = _os.path.join(repo_id, branch_id, build_id, request_path)
+                return DirectoryIndexResponse(request.app.builds_dir, request_path)
             else:
                 raise Exception()

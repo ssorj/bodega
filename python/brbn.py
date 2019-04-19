@@ -170,14 +170,16 @@ _directory_index_template = """
 """
 
 class DirectoryIndexResponse(HtmlResponse):
-    def __init__(self, base_dir, request_path):
-        super().__init__(self.make_index(base_dir, request_path))
+    def __init__(self, base_dir, file_path):
+        super().__init__(self.make_index(base_dir, file_path))
 
     def make_index(self, base_dir, request_path):
-        if request_path.endswith("/"):
+        assert not request_path.startswith("/")
+
+        if request_path != "/" and request_path.endswith("/"):
             request_path = request_path[:-1]
 
-        fs_path = base_dir + request_path
+        fs_path = _os.path.join(base_dir, request_path)
 
         assert _os.path.isdir(fs_path), fs_path
 
@@ -186,10 +188,13 @@ class DirectoryIndexResponse(HtmlResponse):
 
         if request_path == "":
             lines.append("..")
-        else:
-            lines.append(f"<a href=\"{request_path}/..\">..</a>")
 
-        for name in names:
-            lines.append(f"<a href=\"{request_path}/{name}\">{name}</a>")
+            for name in names:
+                lines.append(f"<a href=\"/{name}\">{name}</a>")
+        else:
+            lines.append(f"<a href=\"/{request_path}/..\">..</a>")
+
+            for name in names:
+                lines.append(f"<a href=\"/{request_path}/{name}\">{name}</a>")
 
         return _directory_index_template.format(title=request_path, lines="\n".join(lines))
