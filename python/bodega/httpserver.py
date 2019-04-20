@@ -29,23 +29,10 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
+        self.add_route("/healthz", endpoint=Handler, methods=["GET"])
         self.add_route("/{repo_id}/{branch_id}/{build_id}/{path:path}",
                        endpoint=BuildFileHandler, methods=["PUT", "HEAD", "GET"])
         self.add_route("/{path:path}", endpoint=DirectoryHandler, methods=["GET"])
-
-class DirectoryHandler(Handler):
-    async def handle(self, request):
-        request_path = request.path_params["path"]
-        fs_path = _os.path.join(request.app.builds_dir, request_path)
-        fs_path = _os.path.normpath(fs_path)
-
-        if not fs_path.startswith(request.app.builds_dir):
-            return BadRequestResponse("Requested path not under the builds directory")
-
-        if not _os.path.exists(fs_path):
-            return NotFoundResponse()
-
-        return DirectoryIndexResponse(request.app.builds_dir, request_path)
 
 class BuildFileHandler(Handler):
     async def handle(self, request):
@@ -90,3 +77,17 @@ class BuildFileHandler(Handler):
                 return DirectoryIndexResponse(request.app.builds_dir, request_path)
             else:
                 raise Exception()
+
+class DirectoryHandler(Handler):
+    async def handle(self, request):
+        request_path = request.path_params["path"]
+        fs_path = _os.path.join(request.app.builds_dir, request_path)
+        fs_path = _os.path.normpath(fs_path)
+
+        if not fs_path.startswith(request.app.builds_dir):
+            return BadRequestResponse("Requested path not under the builds directory")
+
+        if not _os.path.exists(fs_path):
+            return NotFoundResponse()
+
+        return DirectoryIndexResponse(request.app.builds_dir, request_path)

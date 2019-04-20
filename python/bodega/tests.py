@@ -25,21 +25,21 @@ def open_test_session(session):
     enable_logging(level="error")
     session.test_timeout = 10
 
-def test_put_get_python(session):
+def test_put_build_python(session):
+    test_data_dir = join(session.module.command.home, "test-data")
+    build_dir = join(test_data_dir, "build1")
+    build_data = BuildData("a", "b", "c")
+
     with TestServer() as server:
-        test_data_dir = join(session.module.command.home, "test-data")
-        build_dir = join(test_data_dir, "build1")
-        build_data = BuildData("a", "b", "c")
-
         bodega_put_build(build_dir, build_data, service_url=server.http_url)
-
         assert bodega_build_exists(build_data, service_url=server.http_url)
 
-def test_put_get_curl(session):
+def test_put_build_curl(session):
+    test_data_dir = join(session.module.command.home, "test-data")
+    build_dir = join(test_data_dir, "build1")
+    build_data = BuildData("a", "b", "c")
+
     with TestServer() as server:
-        test_data_dir = join(session.module.command.home, "test-data")
-        build_dir = join(test_data_dir, "build1")
-        build_data = BuildData("x", "y", "z")
         build_url = "{0}/{1}/{2}/{3}".format(server.http_url, build_data.repo, build_data.branch, build_data.id)
 
         for fs_path in find(build_dir):
@@ -52,6 +52,33 @@ def test_put_get_curl(session):
             put(request_url, fs_path)
 
         get(build_url)
+
+def test_get(session):
+    test_data_dir = join(session.module.command.home, "test-data")
+    build_dir = join(test_data_dir, "build1")
+    build_data = BuildData("a", "b", "c")
+
+    with TestServer() as server:
+        bodega_put_build(build_dir, build_data, service_url=server.http_url)
+
+        get("{0}/{1}/{2}/{3}/dir1".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/dir1/".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/dir1/file4.txt".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/file1.txt".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/file2.zip".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}/{3}/file3.bin".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
+        get("{0}/{1}/{2}".format(server.http_url, build_data.repo, build_data.branch))
+        get("{0}/{1}/{2}/".format(server.http_url, build_data.repo, build_data.branch))
+        get("{0}/{1}".format(server.http_url, build_data.repo))
+        get("{0}/{1}/".format(server.http_url, build_data.repo))
+        get("{0}".format(server.http_url))
+        get("{0}/".format(server.http_url))
+
+def test_healthz(session):
+    with TestServer() as server:
+        get(f"{server.http_url}/healthz")
 
 curl_options = "--fail -o /dev/null -s -w '%{http_code} (%{size_download})\\n' -H 'Content-Type: application/octet-stream' -H 'Expect:'"
 
