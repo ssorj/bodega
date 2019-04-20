@@ -13,5 +13,5 @@
 ## Todo
 
  - gzip encoding
- - cleaner logic
  - etags - seems to be broken now
+ - test HEAD op

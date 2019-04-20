@@ -40,7 +40,7 @@ def test_put_build_curl(session):
     build_data = BuildData("a", "b", "c")
 
     with TestServer() as server:
-        build_url = "{0}/{1}/{2}/{3}".format(server.http_url, build_data.repo, build_data.branch, build_data.id)
+        build_url = f"{server.http_url}/{build_data.repo}/{build_data.branch}/{build_data.id}"
 
         for fs_path in find(build_dir):
             if is_dir(fs_path):
@@ -59,22 +59,24 @@ def test_get(session):
     build_data = BuildData("a", "b", "c")
 
     with TestServer() as server:
+        build_url = f"{server.http_url}/{build_data.repo}/{build_data.branch}/{build_data.id}"
+
         bodega_put_build(build_dir, build_data, service_url=server.http_url)
 
-        get("{0}/{1}/{2}/{3}/dir1".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/dir1/".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/dir1/file4.txt".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/file1.txt".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/file2.zip".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}/{3}/file3.bin".format(server.http_url, build_data.repo, build_data.branch, build_data.id))
-        get("{0}/{1}/{2}".format(server.http_url, build_data.repo, build_data.branch))
-        get("{0}/{1}/{2}/".format(server.http_url, build_data.repo, build_data.branch))
-        get("{0}/{1}".format(server.http_url, build_data.repo))
-        get("{0}/{1}/".format(server.http_url, build_data.repo))
-        get("{0}".format(server.http_url))
-        get("{0}/".format(server.http_url))
+        get(f"{build_url}/dir1")
+        get(f"{build_url}/dir1/")
+        get(f"{build_url}/dir1/file4.txt")
+        get(f"{build_url}")
+        get(f"{build_url}/")
+        get(f"{build_url}/file1.txt")
+        get(f"{build_url}/file2.zip")
+        get(f"{build_url}/file3.bin")
+        get(f"{server.http_url}/{build_data.repo}/{build_data.branch}")
+        get(f"{server.http_url}/{build_data.repo}/{build_data.branch}/")
+        get(f"{server.http_url}/{build_data.repo}")
+        get(f"{server.http_url}/{build_data.repo}/")
+        get(f"{server.http_url}")
+        get(f"{server.http_url}/")
 
 def test_healthz(session):
     with TestServer() as server:
