@@ -23,15 +23,17 @@ RUN microdnf --nodocs install make gcc python3-devel python3-requests && microdn
 
 COPY . /app/src
 ENV HOME=/app
-WORKDIR /app/src
 
 RUN pip3 install --user starlette uvicorn aiofiles
-RUN make clean install
 
+WORKDIR /app/src
+RUN make clean install INSTALL_DIR=/app
+
+WORKDIR /app
+ENV PATH=/app/bin:$PATH
 RUN chown -R 1001:0 /app && chmod -R 775 /app
 USER 1001
 
 EXPOSE 8080
 
-ENV PATH=/app/.local/bin:$PATH
 CMD ["bodega"]

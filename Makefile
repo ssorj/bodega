@@ -20,8 +20,7 @@
 .NOTPARALLEL:
 
 DESTDIR := ""
-PREFIX := ${HOME}/.local
-INSTALLED_BODEGA_HOME = ${PREFIX}/share/bodega
+INSTALL_DIR := ${HOME}/.local/opt/bodega
 
 export BODEGA_HOME = ${CURDIR}/build
 export PATH := ${BODEGA_HOME}/bin:${PATH}
@@ -47,16 +46,16 @@ clean:
 	rm -rf build
 
 .PHONY: build
-build: ${BIN_TARGETS} build/prefix.txt
+build: ${BIN_TARGETS} build/install-dir.txt
 	ln -snf ../python build/python
 	ln -snf ../test-data build/test-data
 
 .PHONY: install
 install: build
-	scripts/install-files build/bin ${DESTDIR}$$(cat build/prefix.txt)/bin
-	scripts/install-files python ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/python
-	scripts/install-files python/bodega ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/python/bodega
-	scripts/install-files test-data ${DESTDIR}$$(cat build/prefix.txt)/share/bodega/test-data
+	scripts/install-files build/bin ${DESTDIR}$$(cat build/install-dir.txt)/bin
+	scripts/install-files python ${DESTDIR}$$(cat build/install-dir.txt)/python
+	scripts/install-files python/bodega ${DESTDIR}$$(cat build/install-dir.txt)/python/bodega
+	scripts/install-files test-data ${DESTDIR}$$(cat build/install-dir.txt)/test-data
 
 .PHONY: test
 test: build
@@ -72,7 +71,7 @@ build-image:
 
 .PHONY: test-image
 test-image:
-	sudo docker run --rm --user 9999 -it ssorj/bodega /app/.local/bin/bodega-test
+	sudo docker run --rm --user 9999 -it ssorj/bodega /app/bin/bodega-test
 
 .PHONY: run-image
 run-image:
@@ -92,11 +91,11 @@ push-image:
 #
 # oc tag --source=docker ssorj/bodega:latest bodega:latest
 
-build/prefix.txt:
-	echo ${PREFIX} > build/prefix.txt
+build/install-dir.txt:
+	echo ${INSTALL_DIR} > build/install-dir.txt
 
 build/bin/%: bin/%.in
-	scripts/configure-file -a bodega_home=${INSTALLED_BODEGA_HOME} $< $@
+	scripts/configure-file -a bodega_home=${INSTALL_DIR} $< $@
 
 .PHONY: update-%
 update-%:
