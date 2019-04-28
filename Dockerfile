@@ -29,10 +29,12 @@ RUN pip3 install --user starlette uvicorn aiofiles
 WORKDIR /app/src
 RUN make clean install INSTALL_DIR=/app
 
-WORKDIR /app
-ENV PATH=/app/bin:$PATH
 RUN chown -R 1001:0 /app && chmod -R 775 /app
 USER 1001
+
+WORKDIR /app
+ENV PATH=/app/bin:$PATH
+ENV STAGGER_URL=http://stagger-http.rhm.svc:8080
 
 EXPOSE 8080
 
