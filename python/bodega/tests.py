@@ -19,7 +19,6 @@
 
 from commandant import TestSkipped
 from fortworth import *
-from fortworth import _bodega_url
 
 def open_test_session(session):
     enable_logging(level="error")
@@ -115,7 +114,15 @@ class TestServer(object):
         self.proc.http_url = f"http://localhost:{http_port}"
 
     def __enter__(self):
-        sleep(0.2);
+        for i in range(10):
+            try:
+                get(f"{self.proc.http_url}/healthz")
+                break
+            except CalledProcessError:
+                sleep(0.1)
+        else:
+            raise Exception("Test server timed out")
+
         return self.proc
 
     def __exit__(self, exc_type, exc_value, traceback):
