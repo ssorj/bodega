@@ -34,7 +34,6 @@ USER 1001
 
 WORKDIR /app
 ENV PATH=/app/bin:$PATH
-ENV STAGGER_HTTP_URL=http://stagger-http.rhm.svc:8080
 
 EXPOSE 8080
 
