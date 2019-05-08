@@ -183,7 +183,7 @@ class DirectoryIndexResponse(HtmlResponse):
 
         assert _os.path.isdir(fs_path), fs_path
 
-        names = _os.listdir(fs_path)
+        names = sorted(_os.listdir(fs_path))
         lines = list()
 
         if request_path == "":
