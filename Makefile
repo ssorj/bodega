@@ -88,7 +88,6 @@ push-image:
 	sudo docker push ssorj/bodega
 
 # To tell the cluster about the new image:
-#
 # oc tag --source=docker ssorj/bodega:latest bodega:latest
 
 build/install-dir.txt:
