@@ -67,28 +67,25 @@ run: build
 
 .PHONY: build-image
 build-image:
-	sudo docker build -t ssorj/bodega .
+	podman build -t ssorj/bodega .
 
 .PHONY: test-image
 test-image:
-	sudo docker run --rm --user 9999 -it ssorj/bodega /app/bin/bodega-test
+	podman run --rm -it ssorj/bodega /app/bin/bodega-test
 
 .PHONY: run-image
 run-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 ssorj/bodega
+	podman run --rm -p 8080:8080 ssorj/bodega
 
 .PHONY: debug-image
 debug-image:
-	sudo docker run --rm --user 9999 -p 8080:8080 -it ssorj/bodega /bin/bash
+	podman run --rm -p 8080:8080 -it ssorj/bodega /bin/bash
 
-# Prerequisite: docker login
+# Prerequisite: podman login docker.io
 
 .PHONY: push-image
 push-image:
-	sudo docker push ssorj/bodega
-
-# To tell the cluster about the new image:
-# oc tag --source=docker ssorj/bodega:latest bodega:latest
+	podman push ssorj/bodega
 
 build/install-dir.txt:
 	echo ${INSTALL_DIR} > build/install-dir.txt
