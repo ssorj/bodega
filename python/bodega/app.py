@@ -76,7 +76,7 @@ class _BuildCleanerThread(_threading.Thread):
         _log.info("Cleaning builds")
 
         try:
-            data = _fortworth.stagger_get_data(service_url="http://stagger-http.rhm.svc:8080")
+            data = _fortworth.stagger_get_data()
         except _requests_exceptions.ConnectionError as e:
             _log.warn(f"Failed connecting to Stagger: {e}")
             return
