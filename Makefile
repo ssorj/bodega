@@ -21,6 +21,7 @@
 
 DESTDIR := ""
 INSTALL_DIR := ${HOME}/.local/opt/bodega
+IMAGE_NAME := quay.io/ssorj/bodega
 
 export BODEGA_HOME = ${CURDIR}/build
 export PATH := ${BODEGA_HOME}/bin:${PATH}
@@ -67,25 +68,25 @@ run: build
 
 .PHONY: build-image
 build-image:
-	podman build -t ssorj/bodega .
+	podman build -qt ${IMAGE_NAME} .
 
 .PHONY: test-image
 test-image:
-	podman run --rm -it ssorj/bodega /app/bin/bodega-test
+	podman run --rm -it ${IMAGE_NAME} /app/bin/bodega-test
 
 .PHONY: run-image
 run-image:
-	podman run --rm -p 8080:8080 ssorj/bodega
+	podman run --rm -p 8080:8080 ${IMAGE_NAME}
 
 .PHONY: debug-image
 debug-image:
-	podman run --rm -p 8080:8080 -it ssorj/bodega /bin/bash
+	podman run --rm -p 8080:8080 -it ${IMAGE_NAME} /bin/bash
 
-# Prerequisite: podman login docker.io
+# Prerequisite: podman login quay.io
 
 .PHONY: push-image
 push-image:
-	podman push ssorj/bodega
+	podman push -q ${IMAGE_NAME}
 
 build/install-dir.txt:
 	echo ${INSTALL_DIR} > build/install-dir.txt
