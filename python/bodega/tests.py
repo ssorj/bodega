@@ -52,6 +52,15 @@ def test_put_build_curl(session):
 
         get(build_url)
 
+def test_put_build_dry_run(session):
+    test_data_dir = join(session.module.command.home, "test-data")
+    build_dir = join(test_data_dir, "build1")
+    build_data = BuildData("a", "b", None)
+
+    with TestServer() as server:
+        bodega_put_build(build_dir, build_data, service_url=server.http_url)
+        assert not bodega_build_exists(build_data, service_url=server.http_url)
+
 def test_get(session):
     test_data_dir = join(session.module.command.home, "test-data")
     build_dir = join(test_data_dir, "build1")

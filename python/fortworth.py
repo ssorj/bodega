@@ -129,6 +129,9 @@ def bodega_put_build(build_dir, build_data, service_url=_bodega_url):
         relative_path = fs_path[len(build_dir) + 1:]
         request_url = "{0}/{1}".format(build_url, relative_path)
 
+        if build_data.id is None:
+            request_url += "?dry-run=1"
+
         with open(fs_path, "rb") as f:
             response = session.put(request_url, data=f)
             response.raise_for_status()

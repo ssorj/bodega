@@ -55,6 +55,9 @@ class BuildFileHandler(Handler):
             temp_path = f"{fs_path}.{_uuid.uuid4()}.temp"
             dir_path, _ = _os.path.split(temp_path)
 
+            if request.query_params.get("dry-run") == "1":
+                return OkResponse()
+
             if not _os.path.exists(dir_path):
                 _os.makedirs(dir_path)
 
