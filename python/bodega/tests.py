@@ -27,19 +27,19 @@ def open_test_session(session):
 def test_put_build_python(session):
     test_data_dir = join(session.module.command.home, "test-data")
     build_dir = join(test_data_dir, "build1")
-    build_data = BuildData("a", "b", "c")
+    build_info = BuildInfo("a", "b", "c")
 
     with TestServer() as server:
-        bodega_put_build(build_dir, build_data, service_url=server.http_url)
-        assert bodega_build_exists(build_data, service_url=server.http_url)
+        bodega_put_build(build_dir, build_info, service_url=server.http_url)
+        assert bodega_build_exists(build_info, service_url=server.http_url)
 
 def test_put_build_curl(session):
     test_data_dir = join(session.module.command.home, "test-data")
     build_dir = join(test_data_dir, "build1")
-    build_data = BuildData("a", "b", "c")
+    build_info = BuildInfo("a", "b", "c")
 
     with TestServer() as server:
-        build_url = f"{server.http_url}/{build_data.repo}/{build_data.branch}/{build_data.id}"
+        build_url = f"{server.http_url}/{build_info.repo}/{build_info.branch}/{build_info.id}"
 
         for fs_path in find(build_dir):
             if is_dir(fs_path):
@@ -55,21 +55,21 @@ def test_put_build_curl(session):
 def test_put_build_dry_run(session):
     test_data_dir = join(session.module.command.home, "test-data")
     build_dir = join(test_data_dir, "build1")
-    build_data = BuildData("a", "b", None)
+    build_info = BuildInfo("a", "b", None)
 
     with TestServer() as server:
-        bodega_put_build(build_dir, build_data, service_url=server.http_url)
-        assert not bodega_build_exists(build_data, service_url=server.http_url)
+        bodega_put_build(build_dir, build_info, service_url=server.http_url)
+        assert not bodega_build_exists(build_info, service_url=server.http_url)
 
 def test_get(session):
     test_data_dir = join(session.module.command.home, "test-data")
     build_dir = join(test_data_dir, "build1")
-    build_data = BuildData("a", "b", "c")
+    build_info = BuildInfo("a", "b", "c")
 
     with TestServer() as server:
-        build_url = f"{server.http_url}/{build_data.repo}/{build_data.branch}/{build_data.id}"
+        build_url = f"{server.http_url}/{build_info.repo}/{build_info.branch}/{build_info.id}"
 
-        bodega_put_build(build_dir, build_data, service_url=server.http_url)
+        bodega_put_build(build_dir, build_info, service_url=server.http_url)
 
         get(f"{build_url}/dir1")
         get(f"{build_url}/dir1/")
@@ -79,10 +79,10 @@ def test_get(session):
         get(f"{build_url}/file1.txt")
         get(f"{build_url}/file2.zip")
         get(f"{build_url}/file3.bin")
-        get(f"{server.http_url}/{build_data.repo}/{build_data.branch}")
-        get(f"{server.http_url}/{build_data.repo}/{build_data.branch}/")
-        get(f"{server.http_url}/{build_data.repo}")
-        get(f"{server.http_url}/{build_data.repo}/")
+        get(f"{server.http_url}/{build_info.repo}/{build_info.branch}")
+        get(f"{server.http_url}/{build_info.repo}/{build_info.branch}/")
+        get(f"{server.http_url}/{build_info.repo}")
+        get(f"{server.http_url}/{build_info.repo}/")
         get(f"{server.http_url}")
         get(f"{server.http_url}/")
 
