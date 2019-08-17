@@ -29,10 +29,10 @@ class HttpServer(Server):
     def __init__(self, app, host="", port=8080):
         super().__init__(app, host=host, port=port)
 
-        self.add_route("/healthz", endpoint=Handler, methods=["GET"])
+        self.add_route("/healthz", endpoint=Handler(), methods=["GET"])
         self.add_route("/{repo_id}/{branch_id}/{build_id}/{path:path}",
-                       endpoint=BuildFileHandler, methods=["PUT", "HEAD", "GET"])
-        self.add_route("/{path:path}", endpoint=DirectoryHandler, methods=["GET"])
+                       endpoint=BuildFileHandler(), methods=["PUT", "HEAD", "GET"])
+        self.add_route("/{path:path}", endpoint=DirectoryHandler(), methods=["GET"])
 
 class BuildFileHandler(Handler):
     async def handle(self, request):

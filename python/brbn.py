@@ -51,9 +51,9 @@ class Router(_routing.Router):
         super().__init__()
         self.app = app
 
-    def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         scope["app"] = self.app
-        return super().__call__(scope)
+        await super().__call__(scope, receive, send)
 
 class Request(_requests.Request):
     @property
@@ -61,11 +61,8 @@ class Request(_requests.Request):
         return self["app"]
 
 class Handler:
-    def __init__(self, scope):
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
+    async def __call__(self, scope, receive, send):
+        request = Request(scope, receive)
 
         try:
             response = await self.handle(request)
@@ -74,7 +71,7 @@ class Handler:
         except Exception as e:
             response = ServerErrorResponse(e)
 
-        await response(receive, send)
+        await response(scope, receive, send)
 
     async def handle(self, request):
         entity = await self.process(request)
@@ -183,7 +180,7 @@ class DirectoryIndexResponse(HtmlResponse):
 
         assert _os.path.isdir(fs_path), fs_path
 
-        names = sorted(_os.listdir(fs_path))
+        names = _os.listdir(fs_path)
         lines = list()
 
         if request_path == "":
